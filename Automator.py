@@ -125,7 +125,7 @@ class PanoAutomator :
 
     # This adds the logo to the bottom of the image.
     # It only works well if the logo will cover the *pod / Nadir and the *pod / Nadir is actually at the very bottom.
-    def addLogo(LogoFile):
+    def addLogo(self, LogoFile):
         self.log('Adding logos...')
         inputFiles = self.folderlist('Nadir')
         outputFiles = self.folderlist('Logo')
