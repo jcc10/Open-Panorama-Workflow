@@ -108,12 +108,12 @@ class PanoAutomator :
             # We now write the script in the function so we *should* never have them end up in diffrent places.
             self.tempFile(scriptText, 'TempScript.pto')
             self.log("Image info obtained. Rotating...")
-            self.command('nona -o ".\\Nadir\\' + F + '" .\\TempScript.pto', 1)
+            self.command('nona -o ".\\Nadir\\' + F + '" .\\TempScript.pto')
             self.log('Image ' + F + ' Rotated.')
         self.remove0000('Nadir')
 
     # This removes the 0000.tif that is automaitcally added to the files when rotated
-    # Might want to move into namestrip (Since it is kinda striping the name.
+    # Might want to move into namestrip (Since it is kinda striping the end of the name.)
     def remove0000(self, Folder):
         print('Renaming files so there is not a 0000.tif at the end')
         files = folderlist(Folder)
@@ -122,6 +122,18 @@ class PanoAutomator :
                 newname = F.replace('0000.tif', '')
                 os.rename('.\\' + Folder + '\\' + F,'.\\' + Folder + '\\' + newname)
         print('Files renamed.')
+
+    # This adds the logo to the bottom of the image.
+    # It only works well if the logo will cover the *pod / Nadir and the *pod / Nadir is actually at the very bottom.
+    def addLogo(LogoFile):
+        self.log('Adding logos...')
+        inputFiles = self.folderlist('Nadir')
+        outputFiles = self.folderlist('Logo')
+        todoFiles = list(set(inputFiles) - set(outputFiles))
+        for F in todoFiles :
+            self.log('Adding logo to center of ' + F + " ... ")
+            self.command('convert -quiet ".\\Nadir\\' + F + '" ".\\Logos\\' + LogoFile + '" -gravity center -composite -matte ".\\Logo\\' + F + '"')
+        self.log("Remember to check if the logo was positioned correctly, you may have to re-do one or two images...")
 
 
 
@@ -172,17 +184,6 @@ def namestrip(data, mode=0):
             else:
                 o.append(s)
         return o
-
-# This adds the logo, it does not always work correctly due to alignment issues.
-def addLogo(LogoFile):
-    print('Adding logos...')
-    inputFiles = folderlist('Nadir')
-    outputFiles = folderlist('Logo')
-    todoFiles = list(set(inputFiles) - set(outputFiles))
-    for F in todoFiles :
-        print('Adding logo to center of ' + F + " ... ")
-        os.system('convert -quiet ".\\Nadir\\' + F + '" ".\\Logos\\' + LogoFile + '" -gravity center -composite -matte ".\\Logo\\' + F + '"')
-    print("Remember to check if the logo was positioned correctly, you may have to re-do one or two images...")
 
 # This rotates the image after the logo is added.
 def autoRotateFromNadir():
