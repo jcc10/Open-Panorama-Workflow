@@ -11,11 +11,15 @@ from PIL import Image
 
 class PanoAutomator :
     # Runs a command, if this breaks, I don't want to go looking for all of the calls.
-    def command(self, cmd):
+    def command(self, cmd, dbg=0):
+        if dbg == 1:
+            self.log(cmd, 1)
         os.system(cmd)
 
     # Dysplays text to the user. Later if I ever add a gui this will become the text log function.
-    def log(self, text):
+    def log(self, text, dbg=0):
+        if dbg == 1:
+            print("DEBUG: ", end='')
         print(text)
 
     def folderlist(self, foldername):
