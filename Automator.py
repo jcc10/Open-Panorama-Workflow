@@ -67,6 +67,13 @@ class PanoAutomator :
             script = 'p f2 w' + Width + ' h' + Height + ' v360 E0 R0 n"TIFF_m c:NONE r:CROP"\nm g1 i0 f0 m2 p0.00784314\n\ni w' + Width + ' h' + Height + ' f4 v360 r0 p-90 y0 n".\\Logo\\' + filename +'"'
         return script
 
+    # File Saver
+    # This is used so we can arbatrarally save files reletave to the program. Eventually this will be replaced with a temporarry file interface.
+    def tempFile(self, data, filename):
+        wr = open('.\\' + filename, 'w')
+        wr.write(scriptText)
+
+
     # Used to split a image in half using ImageMagick, To be upgraded in the near future.
     def autoingest(self):
         inputFiles = self.folderlist('Ingest')
@@ -99,10 +106,9 @@ class PanoAutomator :
             origWidth = str(origWidth)
             scriptText = self.generate_script(0,F,origHeight,origWidth)
             # We now write the script in the function so we *should* never have them end up in diffrent places.
-            wr = open('.\\TempScript.pto', 'w')
-            wr.write(scriptText)
+            self.tempFile(scriptText, 'TempScript.pto')
             self.log("Image info obtained. Rotating...")
-            self.command('nona -o ".\\Nadir\\' + F + '" .\\TempScript.pto')
+            self.command('nona -o ".\\Nadir\\' + F + '" .\\TempScript.pto', 1)
             self.log('Image ' + F + ' Rotated.')
         self.remove0000('Nadir')
 
