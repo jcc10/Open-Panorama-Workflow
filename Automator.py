@@ -33,7 +33,7 @@ class PanoAutomator :
                 s2 = self.namestrip(s, 0)
                 if not(s2 in out):
                     out.append(s2)
-                return out
+            return out
 
     # Used to split a image in half using ImageMagick, To be upgraded in the near future.
     def autoingest(self):
