@@ -104,25 +104,6 @@ def namestrip(data, mode=0):
                 o.append(s)
         return o
 
-
-# this splits the image into two halfs
-def autoingest():
-    inputFiles = folderlist('Ingest')
-    outputFiles = folderlist('Ingested')
-    outputFiles = namestrip(outputFiles, 1)
-    todoFiles = list(set(inputFiles) - set(outputFiles))
-    for F in todoFiles :
-        print('Splitting ' + F + "\nProssesing Right...")
-        FoutR = F[:8] + "R" + '.JPG'
-        FoutL = F[:8] + "L" + '.JPG'
-        # Offset of half the image
-        os.system('convert "./Ingest/' + F + '" -crop 3888x3888+3888+0 "./Ingested/' + FoutR + '"')
-        print('Right done...\nProssesing Left')
-        # Image full size is 7776 wide and 3888 tall. (easy right?)
-        os.system('convert "./Ingest/' + F + '" -crop 3888x3888+0+0 "./Ingested/' + FoutL + '"')
-        print('Left done...')
-    print('All files done')
-
 # This rotates the panorama you made so you can edit the Nadir
 def autoRotateToNadir():
     inputFiles = folderlist('Stitched')
