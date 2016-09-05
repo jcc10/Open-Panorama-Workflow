@@ -71,7 +71,7 @@ class PanoAutomator :
     # This is used so we can arbatrarally save files reletave to the program. Eventually this will be replaced with a temporarry file interface.
     def tempFile(self, data, filename):
         wr = open('.\\' + filename, 'w')
-        wr.write(scriptText)
+        wr.write(data)
 
 
     # Used to split a image in half using ImageMagick, To be upgraded in the near future.
