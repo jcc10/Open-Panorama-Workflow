@@ -34,6 +34,16 @@ class PanoAutomator :
                 if not(s2 in out):
                     out.append(s2)
             return out
+        elif mode == 4 :
+            # Just incase you save your project file in the stitched directory.
+            # This should be replaced with a ignore extnsion function in the future.
+            o = []
+            for s in data:
+                if s[-4:] == '.pts':
+                    None
+                else:
+                    o.append(s)
+            return o
 
     # This generates the rotation script used by nona and saves it to TepScript.pto so the program can use it. Breakdown below...
     #
