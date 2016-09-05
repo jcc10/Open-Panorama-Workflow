@@ -42,8 +42,8 @@ class PanoAutomator :
             # Strips .tif file extensions.
             o = []
             for s in data:
-                s3 = s2.replace('.tif', '')
-                o.append(s3)
+                s2 = s.replace('.tif', '')
+                o.append(s2)
                 # Returns the list WITH NO EXTENSIONS remember to add them back on
             return o
         elif mode == 3 :
@@ -134,7 +134,7 @@ class PanoAutomator :
     # Might want to move into namestrip (Since it is kinda striping the end of the name.)
     def remove0000(self, Folder):
         print('Renaming files so there is not a 0000.tif at the end')
-        files = folderlist(Folder)
+        files = self.folderlist(Folder)
         for F in files:
             if F[-8:] == '0000.tif':
                 newname = F.replace('0000.tif', '')
