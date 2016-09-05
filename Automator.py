@@ -9,6 +9,11 @@ import os
 # REMEMBER PIL WILL NOT FUNCTION CORRECTLY IF YOU SAVE AS 16 BIT .TIF!
 from PIL import Image
 
+class AutomatorTools :
+    # This is where all the common tools for PanoAutomator will go, this is so it's a sub-class.
+    # This will be moved into a seprate file and subfolder later.
+    None
+
 class PanoAutomator :
     # Runs a command, if this breaks, I don't want to go looking for all of the calls.
     def command(self, cmd, dbg=0):
