@@ -68,7 +68,8 @@ class PanoAutomator :
         return script
 
     # File Saver
-    # This is used so we can arbatrarally save files reletave to the program. Eventually this will be replaced with a temporarry file interface.
+    # This is used so we can arbatrarally save files reletave to the program.
+    # Eventually this will be replaced with a temporarry file interface where it returns the full path of the tempfile.
     def tempFile(self, data, filename):
         wr = open('.\\' + filename, 'w')
         wr.write(data)
@@ -135,6 +136,23 @@ class PanoAutomator :
             self.command('convert -quiet ".\\Nadir\\' + F + '" ".\\Logos\\' + LogoFile + '" -gravity center -composite -matte ".\\Logo\\' + F + '"')
         self.log("Remember to check if the logo was positioned correctly, you may have to re-do one or two images...")
 
+    # This rotates the image after the logo is added.
+    def autoRotateFromNadir(self):
+        inputFiles = self.folderlist('Logo')
+        outputFiles = self.folderlist('Final\\tif')
+        todoFiles = list(set(inputFiles) - set(outputFiles))
+        for F in todoFiles :
+            self.log('Processing image ' + F + ' information...')
+            origWidth, origHeight = Image.open(os.getcwd() + "\\Logo\\" + F).size
+            origHeight = str(origHeight)
+            origWidth = str(origWidth)
+            scriptText = self.generate_script(1,F,origHeight,origWidth)
+            self.tempFile(scriptText, 'TempScript.pto')
+            self.log("Image info obtained. Rotating...")
+            self.command('nona -o ".\\Final\\tif\\' + F + '" .\\TempScript.pto')
+            self.log('Image ' + F + ' Rotated.')
+        self.remove0000('Final\\tif')
+
 
 
 # This lists all the files in the folder. Just made for convenince.
@@ -185,21 +203,6 @@ def namestrip(data, mode=0):
                 o.append(s)
         return o
 
-# This rotates the image after the logo is added.
-def autoRotateFromNadir():
-    inputFiles = folderlist('Logo')
-    outputFiles = folderlist('Final\\tif')
-    todoFiles = list(set(inputFiles) - set(outputFiles))
-    for F in todoFiles :
-        print('Processing image ' + F + ' information...')
-        origWidth, origHeight = Image.open(os.getcwd() + "\\Logo\\" + F).size
-        origHeight = str(origHeight)
-        origWidth = str(origWidth)
-        generate_script(1,F,origHeight,origWidth)
-        print("Image info obtained. Rotating...")
-        os.system('nona -o ".\\Final\\tif\\' + F + '" .\\TempScript.pto')
-        print('Image ' + F + ' Rotated.')
-    remove0000('Final\\tif')
 
 # This converts the final tif file into a final jpg file.
 # This is b/c I don't feel like re-writing the rotation function to *also* change the file format.
