@@ -221,7 +221,7 @@ PA = PanoAutomator()
 PA.autoingest()
 PA.autoRotateToNadir()
 # You can change what the logo file name is here, I don't remember if I ever fixed the bug where you can't have spaces or not...
-#addLogo('Advanced_Nadir_small.tif')
+PA.addLogo('Advanced_Nadir_small.tif')
 #autoRotateFromNadir()
 #convert()
 # This is for if you just click on the program and it actually runs. (So it dosent just close out.) The wrapper is B/C I was debugging it and am still doing so.
