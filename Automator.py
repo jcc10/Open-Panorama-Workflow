@@ -38,6 +38,23 @@ class PanoAutomator :
                 if not(s2 in out):
                     out.append(s2)
             return out
+        elif mode == 2 :
+            # Strips .tif file extensions.
+            o = []
+            for s in data:
+                s3 = s2.replace('.tif', '')
+                o.append(s3)
+                # Returns the list WITH NO EXTENSIONS remember to add them back on
+            return o
+        elif mode == 3 :
+            o = []
+            for s in data:
+                # Strips .jpg file extensions
+                s2 = s.replace('.jpg', '')
+                s3 = s2.replace('.jpeg', '')
+                o.append(s3)
+                # Returns the list WITH NO EXTENSIONS remember to add them back on
+            return o
         elif mode == 4 :
             # Just incase you save your project file in the stitched directory.
             # This should be replaced with a ignore extnsion function in the future.
@@ -153,70 +170,19 @@ class PanoAutomator :
             self.log('Image ' + F + ' Rotated.')
         self.remove0000('Final\\tif')
 
-
-
-# This lists all the files in the folder. Just made for convenince.
-def folderlist(foldername):
-    dirname = '.\\' + foldername
-    return([f for f in os.listdir(dirname)])
-
-# Originally meant to strip names, it became so much more
-def namestrip(data, mode=0):
-    if mode == 0 :
-        # Gets the first 8 characters and adds a .JPG to the end of the file name
-        return(data[:8] + '.JPG')
-    if mode == 1 :
-        # Used to remove the R or L in the ingested folder list. Also ensures you don't have duplicates.
-        o = []
-        for s in data:
-            s2 = namestrip(s, 0)
-            if s2 in o:
-                None
-            else:
-                o.append(s2)
-            None
-        return o
-    if mode == 2 :
-        # Strips .tif file extensions.
-        o = []
-        for s in data:
-            s3 = s2.replace('.tif', '')
-            o.append(s3)
-            # Returns the list WITH NO EXTENSIONS remember to add them back on
-        return o
-    if mode == 3 :
-        o = []
-        for s in data:
-            # Strips .jpg file extensions
-            s2 = s.replace('.jpg', '')
-            s3 = s2.replace('.jpeg', '')
-            o.append(s3)
-            # Returns the list WITH NO EXTENSIONS remember to add them back on
-        return o
-    if mode == 4 :
-        # Just incase you save your project file in the stitched directory.
-        o = []
-        for s in data:
-            if s[-4:] == '.pts':
-                None
-            else:
-                o.append(s)
-        return o
-
-
-# This converts the final tif file into a final jpg file.
-# This is b/c I don't feel like re-writing the rotation function to *also* change the file format.
-def convert():
-    inputFiles = folderlist('Final\\tif')
-    outputFiles = folderlist('Final\\jpg')
-    inputFiles2 = namestrip(inputFiles, 2)
-    outputFiles2 = namestrip(outputFiles, 3)
-    todoFiles = list(set(inputFiles2) - set(outputFiles2))
-    for F in todoFiles :
-        print('Converting ' + F + " to .JPG ... ")
-        # REMEMBER TO ADD ON THE FILE EXTENSIONS, THE LIST IS MISSING THEM!
-        os.system('convert -quiet ".\\Final\\tif\\' + F + '.tif" ".\\final\\jpg\\' + F + '.jpg"')
-    print("All Converts Complete...")
+    # This converts the final tif file into a final jpg file.
+    # This is b/c I don't feel like re-writing the rotation function to *also* change the file format.
+    def convert(self):
+        inputFiles = self.folderlist('Final\\tif')
+        outputFiles = self.folderlist('Final\\jpg')
+        inputFiles2 = self.namestrip(inputFiles, 2)
+        outputFiles2 = self.namestrip(outputFiles, 3)
+        todoFiles = list(set(inputFiles2) - set(outputFiles2))
+        for F in todoFiles :
+            self.log('Converting ' + F + " to .JPG ... ")
+            # REMEMBER TO ADD ON THE FILE EXTENSIONS, THE LIST IS MISSING THEM!
+            self.command('convert -quiet ".\\Final\\tif\\' + F + '.tif" ".\\final\\jpg\\' + F + '.jpg"')
+        self.log("All Converts Complete...")
 
 # This just calls all the functions in order, I will eventually make a menu for this but for now, here you are.
 #Let's see if the new object works...
@@ -226,6 +192,6 @@ PA.autoRotateToNadir()
 # You can change what the logo file name is here, I don't remember if I ever fixed the bug where you can't have spaces or not...
 PA.addLogo('Advanced_Nadir_small.tif')
 PA.autoRotateFromNadir()
-#convert()
+PA.convert()
 # This is for if you just click on the program and it actually runs. (So it dosent just close out.) The wrapper is B/C I was debugging it and am still doing so.
 input("Press enter to close")
