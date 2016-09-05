@@ -9,6 +9,53 @@ import os
 # REMEMBER PIL WILL NOT FUNCTION CORRECTLY IF YOU SAVE AS 16 BIT .TIF!
 from PIL import Image
 
+class PanoAutomator :
+    # Runs a command, if this breaks, I don't want to go looking for all of the calls.
+    def command(self, cmd):
+        os.system(cmd)
+
+    # Dysplays text to the user. Later if I ever add a gui this will become the text log function.
+    def log(self, text):
+        print(text)
+
+    def folderlist(self, foldername):
+        dirname = './' + foldername
+        return([f for f in os.listdir(dirname)])
+
+    # Name stripping finction V2,
+    def namestrip(self, data, mode=0):
+        if mode == 0:
+            return(data[:8] + '.JPG')
+        elif mode == 1 :
+            # used to remove the R or L in the ingested folder list. Also ensures you don't have duplicate entries in the output.
+            out = []
+            for s in data:
+                s2 = self.namestrip(s, 0)
+                if not(s2 in out):
+                    out.append(s2)
+                return out
+
+    # Used to split a image in half using ImageMagick, To be upgraded in the near future.
+    def autoingest(self):
+        inputFiles = self.folderlist('Ingest')
+        outputFiles = self.folderlist('Ingested')
+        outputFiles = self.namestrip(outputFiles, 1)
+        todoFiles = list(set(inputFiles) - set(outputFiles))
+        for F in todoFiles :
+            self.log('Splitting ' + F + "\nProssesing Right...")
+            FoutR = F[:8] + "R" + '.TIF'
+            FoutL = F[:8] + "L" + '.JPG'
+            # Offset of half the image
+            # TODO: Make a option for this read the image dimennsions from the metadata using PIL
+            self.command('convert "./Ingest/' + F + '" -crop 3888x3888+3888+0 "./Ingested/' + FoutR + '"')
+            self.log('Right done...\nProssesing Left')
+            # Image full size is 7776 wide and 3888 tall. (easy right?)
+            self.command('convert "./Ingest/' + F + '" -crop 3888x3888+0+0 "./Ingested/' + FoutL + '"')
+            self.log('Left done...')
+        self.log('All files done')
+
+
+
 # This lists all the files in the folder. Just made for convenince.
 def folderlist(foldername):
     dirname = '.\\' + foldername
@@ -165,11 +212,14 @@ def generate_script(mode, filename, Height, Width):
 
 
 # This just calls all the functions in order, I will eventually make a menu for this but for now, here you are.
-autoingest()
-autoRotateToNadir()
+#Let's see if the new object works...
+PA = PanoAutomator()
+PA.autoingest()
+#autoingest()
+#autoRotateToNadir()
 # You can change what the logo file name is here, I don't remember if I ever fixed the bug where you can't have spaces or not...
-addLogo('Advanced_Nadir_small.tif')
-autoRotateFromNadir()
-convert()
+#addLogo('Advanced_Nadir_small.tif')
+#autoRotateFromNadir()
+#convert()
 # This is for if you just click on the program and it actually runs. (So it dosent just close out.) The wrapper is B/C I was debugging it and am still doing so.
 input("Press enter to close")
