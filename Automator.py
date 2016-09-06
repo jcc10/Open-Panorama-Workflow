@@ -8,6 +8,9 @@
 import os
 # REMEMBER PIL WILL NOT FUNCTION CORRECTLY IF YOU SAVE AS 16 BIT .TIF!
 from PIL import Image
+import subprocess
+import time
+
 
 class AutomatorTools :
     # This is where all the common tools for PanoAutomator will go, this is so it's a sub-class.
@@ -84,7 +87,7 @@ class PanoAutomator :
 
     # For now all debug is disabled.
     def __init__(self):
-        self.debug = False
+        self.debug = True
         self.AutoTools = AutomatorTools(self.debug)
 
     # Separate function so I can chage the logging seprate to the main tool (IE: add a prefix to all messages.)
@@ -123,17 +126,42 @@ class PanoAutomator :
         outputFiles = self.AutoTools.folderlist('Ingested')
         outputFiles = self.AutoTools.namestrip(outputFiles, 1)
         todoFiles = list(set(inputFiles) - set(outputFiles))
+        processes = set()
+        max_processes = 4
         for F in todoFiles :
             self.log('Splitting ' + F + "\nProssesing Right...")
             FoutR = F[:8] + "R" + '.JPG'
             FoutL = F[:8] + "L" + '.JPG'
             # Offset of half the image
             # TODO: Make a option for this read the image dimennsions from the metadata using PIL
-            self.AutoTools.command('convert "./Ingest/' + F + '" -crop 3888x3888+3888+0 "./Ingested/' + FoutR + '"')
+            cwd = os.getcwd()
+            escaped = cwd.translate(
+                str.maketrans(
+                    {"-":  r"\-",
+                    " ": r"\ ",
+                    "]":  r"\]",
+                    "\\": r"\\",
+                    "^":  r"\^",
+                    "$":  r"\$",
+                    "*":  r"\*",
+                    ".":  r"\."}
+                )
+            )
+            args = 'convert "' + cwd + '/Ingest/' + F + '"' + " -crop 3888x3888+0+0 " +'"' + cwd + '/Ingested/' + FoutR + '"'
+            processes.add(subprocess.Popen(args, shell=True))
+            while len(processes) >= max_processes:
+                time.sleep(.1)
+                processes.difference_update([
+                    p for p in processes if p.poll() is not None])
             self.log('Right done...\nProssesing Left')
             # Image full size is 7776 wide and 3888 tall. (easy right?)
-            self.AutoTools.command('convert "./Ingest/' + F + '" -crop 3888x3888+0+0 "./Ingested/' + FoutL + '"')
+            args = 'convert "' + cwd + '/Ingest/' + F + '"' + " -crop 3888x3888+3888+0 " +'"' + cwd + '/Ingested/' + FoutL + '"'
+            processes.add(subprocess.Popen(args, shell=True))
             self.log('Left done...')
+            while len(processes) >= max_processes:
+                time.sleep(.1)
+                processes.difference_update([
+                    p for p in processes if p.poll() is not None])
         self.log('All files done')
 
     # This rotates the panorama you made so you can edit the Nadir
