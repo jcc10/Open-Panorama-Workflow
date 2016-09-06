@@ -12,25 +12,22 @@ from PIL import Image
 class AutomatorTools :
     # This is where all the common tools for PanoAutomator will go, this is so it's a sub-class.
     # This will be moved into a seprate file and subfolder later.
-    None
 
-class PanoAutomator :
+    def __init__(self, debugMode):
+        self.debug = debugMode
+
     # Runs a command, if this breaks, I don't want to go looking for all of the calls.
-    def command(self, cmd, dbg=0):
-        if dbg == 1:
+    def command(self, cmd):
+        if self.debug == True:
             self.log(cmd, 1)
         os.system(cmd)
 
     # Dysplays text to the user. Later if I ever add a gui this will become the text log function.
     def log(self, text, dbg=0):
         if dbg == 1:
-            print("DEBUG: ", end='')
+            if self.debug == True:
+                print("DEBUG: ", end='')
         print(text)
-
-    def folderlist(self, foldername):
-        dirname = './' + foldername
-        return([f for f in os.listdir(dirname)])
-
     # Name stripping finction V2,
     def namestrip(self, data, mode=0):
         if mode == 0:
@@ -71,6 +68,29 @@ class PanoAutomator :
                     o.append(s)
             return o
 
+    def folderlist(self, foldername):
+        dirname = './' + foldername
+        return([f for f in os.listdir(dirname)])
+
+    # File Saver
+    # This is used so we can arbatrarally save files reletave to the program.
+    # Eventually this will be replaced with a temporarry file interface where it returns the full path of the tempfile.
+    def tempFile(self, data, filename):
+        wr = open('.\\' + filename, 'w')
+        wr.write(data)
+
+class PanoAutomator :
+    debug = False
+
+    # For now all debug is disabled.
+    def __init__(self):
+        self.debug = False
+        self.AutoTools = AutomatorTools(self.debug)
+
+    # Separate function so I can chage the logging seprate to the main tool (IE: add a prefix to all messages.)
+    def log(self, text, dbg=0):
+        self.AutoTools.log(text, dbg)
+
     # This generates the rotation script used by nona and saves it to TepScript.pto so the program can use it. Breakdown below...
     #
     # p f2 w#Width h#Height v360 E0 R0 n"TIFF_m c:NONE r:CROP"
@@ -84,43 +104,43 @@ class PanoAutomator :
     # (To get both top and bottom of the image visable use 90, 0, 90 repectivly)
     def generate_script(self, mode, filename, Height, Width):
         if mode == 0 :
+            # Rotates image so nadir is in the center (Reverses 1)
             script = 'p f2 w' + Width + ' h' + Height + ' v360 E0 R0 n"TIFF_m c:NONE r:CROP"\nm g1 i0 f0 m2 p0.00784314\n\ni w' + Width + ' h' + Height + ' f4 v360 r0 p90 y0 n".\\Stitched\\' + filename +'"'
         elif mode == 1 :
+            # Rotates image so top is in the center (Reverses 0)
             script = 'p f2 w' + Width + ' h' + Height + ' v360 E0 R0 n"TIFF_m c:NONE r:CROP"\nm g1 i0 f0 m2 p0.00784314\n\ni w' + Width + ' h' + Height + ' f4 v360 r0 p-90 y0 n".\\Logo\\' + filename +'"'
+        #elif mode == 2 :
+            # Rotates image so nadir is on the left and top is on the right (Reverses 3)
+            #script = 'p f2 w' + Width + ' h' + Height + ' v360 E0 R0 n"TIFF_m c:NONE r:CROP"\nm g1 i0 f0 m2 p0.00784314\n\ni w' + Width + ' h' + Height + ' f4 v360 r0 p-90 y0 n".\\Logo\\' + filename +'"'
+        #elif mode == 3 :
+            # Reverses 2
+            #script = 'p f2 w' + Width + ' h' + Height + ' v360 E0 R0 n"TIFF_m c:NONE r:CROP"\nm g1 i0 f0 m2 p0.00784314\n\ni w' + Width + ' h' + Height + ' f4 v360 r0 p-90 y0 n".\\Logo\\' + filename +'"'
         return script
-
-    # File Saver
-    # This is used so we can arbatrarally save files reletave to the program.
-    # Eventually this will be replaced with a temporarry file interface where it returns the full path of the tempfile.
-    def tempFile(self, data, filename):
-        wr = open('.\\' + filename, 'w')
-        wr.write(data)
-
 
     # Used to split a image in half using ImageMagick, To be upgraded in the near future.
     def autoingest(self):
-        inputFiles = self.folderlist('Ingest')
-        outputFiles = self.folderlist('Ingested')
-        outputFiles = self.namestrip(outputFiles, 1)
+        inputFiles = self.AutoTools.folderlist('Ingest')
+        outputFiles = self.AutoTools.folderlist('Ingested')
+        outputFiles = self.AutoTools.namestrip(outputFiles, 1)
         todoFiles = list(set(inputFiles) - set(outputFiles))
         for F in todoFiles :
             self.log('Splitting ' + F + "\nProssesing Right...")
-            FoutR = F[:8] + "R" + '.TIF'
+            FoutR = F[:8] + "R" + '.JPG'
             FoutL = F[:8] + "L" + '.JPG'
             # Offset of half the image
             # TODO: Make a option for this read the image dimennsions from the metadata using PIL
-            self.command('convert "./Ingest/' + F + '" -crop 3888x3888+3888+0 "./Ingested/' + FoutR + '"')
+            self.AutoTools.command('convert "./Ingest/' + F + '" -crop 3888x3888+3888+0 "./Ingested/' + FoutR + '"')
             self.log('Right done...\nProssesing Left')
             # Image full size is 7776 wide and 3888 tall. (easy right?)
-            self.command('convert "./Ingest/' + F + '" -crop 3888x3888+0+0 "./Ingested/' + FoutL + '"')
+            self.AutoTools.command('convert "./Ingest/' + F + '" -crop 3888x3888+0+0 "./Ingested/' + FoutL + '"')
             self.log('Left done...')
         self.log('All files done')
 
     # This rotates the panorama you made so you can edit the Nadir
     def autoRotateToNadir(self):
-        inputFiles = self.folderlist('Stitched')
-        inputFiles2 = self.namestrip(inputFiles, 4)
-        outputFiles = self.folderlist('Nadir')
+        inputFiles = self.AutoTools.folderlist('Stitched')
+        inputFiles2 = self.AutoTools.namestrip(inputFiles, 4)
+        outputFiles = self.AutoTools.folderlist('Nadir')
         todoFiles = list(set(inputFiles2) - set(outputFiles))
         for F in todoFiles :
             self.log('Processing image ' + F + ' information...')
@@ -129,9 +149,9 @@ class PanoAutomator :
             origWidth = str(origWidth)
             scriptText = self.generate_script(0,F,origHeight,origWidth)
             # We now write the script in the function so we *should* never have them end up in diffrent places.
-            self.tempFile(scriptText, 'TempScript.pto')
+            self.AutoTools.tempFile(scriptText, 'TempScript.pto')
             self.log("Image info obtained. Rotating...")
-            self.command('nona -o ".\\Nadir\\' + F + '" .\\TempScript.pto')
+            self.AutoTools.command('nona -o ".\\Nadir\\' + F + '" .\\TempScript.pto')
             self.log('Image ' + F + ' Rotated.')
         self.remove0000('Nadir')
 
@@ -139,7 +159,7 @@ class PanoAutomator :
     # Might want to move into namestrip (Since it is kinda striping the end of the name.)
     def remove0000(self, Folder):
         print('Renaming files so there is not a 0000.tif at the end')
-        files = self.folderlist(Folder)
+        files = self.AutoTools.folderlist(Folder)
         for F in files:
             if F[-8:] == '0000.tif':
                 newname = F.replace('0000.tif', '')
@@ -150,18 +170,18 @@ class PanoAutomator :
     # It only works well if the logo will cover the *pod / Nadir and the *pod / Nadir is actually at the very bottom.
     def addLogo(self, LogoFile):
         self.log('Adding logos...')
-        inputFiles = self.folderlist('Nadir')
-        outputFiles = self.folderlist('Logo')
+        inputFiles = self.AutoTools.folderlist('Nadir')
+        outputFiles = self.AutoTools.folderlist('Logo')
         todoFiles = list(set(inputFiles) - set(outputFiles))
         for F in todoFiles :
             self.log('Adding logo to center of ' + F + " ... ")
-            self.command('convert -quiet ".\\Nadir\\' + F + '" ".\\Logos\\' + LogoFile + '" -gravity center -composite -matte ".\\Logo\\' + F + '"')
+            self.AutoTools.command('convert -quiet ".\\Nadir\\' + F + '" ".\\Logos\\' + LogoFile + '" -gravity center -composite -matte ".\\Logo\\' + F + '"')
         self.log("Remember to check if the logo was positioned correctly, you may have to re-do one or two images...")
 
     # This rotates the image after the logo is added.
     def autoRotateFromNadir(self):
-        inputFiles = self.folderlist('Logo')
-        outputFiles = self.folderlist('Final\\tif')
+        inputFiles = self.AutoTools.folderlist('Logo')
+        outputFiles = self.AutoTools.folderlist('Final\\tif')
         todoFiles = list(set(inputFiles) - set(outputFiles))
         for F in todoFiles :
             self.log('Processing image ' + F + ' information...')
@@ -169,24 +189,24 @@ class PanoAutomator :
             origHeight = str(origHeight)
             origWidth = str(origWidth)
             scriptText = self.generate_script(1,F,origHeight,origWidth)
-            self.tempFile(scriptText, 'TempScript.pto')
+            self.AutoTools.tempFile(scriptText, 'TempScript.pto')
             self.log("Image info obtained. Rotating...")
-            self.command('nona -o ".\\Final\\tif\\' + F + '" .\\TempScript.pto')
+            self.AutoTools.command('nona -o ".\\Final\\tif\\' + F + '" .\\TempScript.pto')
             self.log('Image ' + F + ' Rotated.')
         self.remove0000('Final\\tif')
 
     # This converts the final tif file into a final jpg file.
     # This is b/c I don't feel like re-writing the rotation function to *also* change the file format.
     def convert(self):
-        inputFiles = self.folderlist('Final\\tif')
-        outputFiles = self.folderlist('Final\\jpg')
-        inputFiles2 = self.namestrip(inputFiles, 2)
-        outputFiles2 = self.namestrip(outputFiles, 3)
+        inputFiles = self.AutoTools.folderlist('Final\\tif')
+        outputFiles = self.AutoTools.folderlist('Final\\jpg')
+        inputFiles2 = self.AutoTools.namestrip(inputFiles, 2)
+        outputFiles2 = self.AutoTools.namestrip(outputFiles, 3)
         todoFiles = list(set(inputFiles2) - set(outputFiles2))
         for F in todoFiles :
             self.log('Converting ' + F + " to .JPG ... ")
             # REMEMBER TO ADD ON THE FILE EXTENSIONS, THE LIST IS MISSING THEM!
-            self.command('convert -quiet ".\\Final\\tif\\' + F + '.tif" ".\\final\\jpg\\' + F + '.jpg"')
+            self.AutoTools.command('convert -quiet ".\\Final\\tif\\' + F + '.tif" ".\\final\\jpg\\' + F + '.jpg"')
         self.log("All Converts Complete...")
 
 # This just calls all the functions in order, I will eventually make a menu for this but for now, here you are.
