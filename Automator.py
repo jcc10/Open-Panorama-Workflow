@@ -186,7 +186,6 @@ class PanoAutomator :
         inputFiles2 = self.AutoTools.namestrip(inputFiles, 4)
         outputFiles = self.AutoTools.folderlist('Nadir')
         todoFiles = list(set(inputFiles2) - set(outputFiles))
-        start = time.time()
         for F in todoFiles :
             self.log('Processing image ' + F + ' information...')
             origWidth, origHeight = Image.open("./Stitched/" + F).size
@@ -200,8 +199,6 @@ class PanoAutomator :
             self.AutoTools.command(args)
         self.AutoTools.processesWait(0)
         self.AutoTools.prugeTemps()
-        end = time.time()
-        print("!! IMPORTANT !! : " + str(end - start))
         self.remove0000('Nadir')
 
     # This removes the 0000.tif that is automaitcally added to the files when rotated
@@ -224,38 +221,43 @@ class PanoAutomator :
         todoFiles = list(set(inputFiles) - set(outputFiles))
         for F in todoFiles :
             self.log('Adding logo to center of ' + F + " ... ")
-            self.AutoTools.command('convert -quiet ".\\Nadir\\' + F + '" ".\\Logos\\' + LogoFile + '" -gravity center -composite -matte ".\\Logo\\' + F + '"')
+            args ='convert -quiet "./Nadir/' + F + '" "./Logos/' + LogoFile + '" -gravity center -composite -matte "./Logo/' + F + '"'
+            self.AutoTools.command(args)
         self.log("Remember to check if the logo was positioned correctly, you may have to re-do one or two images...")
 
     # This rotates the image after the logo is added.
     def autoRotateFromNadir(self):
         inputFiles = self.AutoTools.folderlist('Logo')
-        outputFiles = self.AutoTools.folderlist('Final\\tif')
+        outputFiles = self.AutoTools.folderlist('Final/tif')
         todoFiles = list(set(inputFiles) - set(outputFiles))
         for F in todoFiles :
             self.log('Processing image ' + F + ' information...')
-            origWidth, origHeight = Image.open(os.getcwd() + "\\Logo\\" + F).size
+            origWidth, origHeight = Image.open(os.getcwd() + "/Logo/" + F).size
             origHeight = str(origHeight)
             origWidth = str(origWidth)
             scriptText = self.generate_script(1,F,origHeight,origWidth)
-            self.AutoTools.tempFile(scriptText, 'TempScript.pto')
+            filename = self.AutoTools.tempFile(scriptText, 'pto')
             self.log("Image info obtained. Rotating...")
-            self.AutoTools.command('nona -o ".\\Final\\tif\\' + F + '" .\\TempScript.pto')
+            args = 'nona -o "./Final/tif/' + F + '" "./temp/' + filename + '"'
+            self.AutoTools.command(args)
             self.log('Image ' + F + ' Rotated.')
-        self.remove0000('Final\\tif')
+        self.AutoTools.processesWait(0)
+        self.AutoTools.prugeTemps()
+        self.remove0000('Final/tif')
 
     # This converts the final tif file into a final jpg file.
     # This is b/c I don't feel like re-writing the rotation function to *also* change the file format.
     def convert(self):
-        inputFiles = self.AutoTools.folderlist('Final\\tif')
-        outputFiles = self.AutoTools.folderlist('Final\\jpg')
+        inputFiles = self.AutoTools.folderlist('Final/tif')
+        outputFiles = self.AutoTools.folderlist('Final/jpg')
         inputFiles2 = self.AutoTools.namestrip(inputFiles, 2)
         outputFiles2 = self.AutoTools.namestrip(outputFiles, 3)
         todoFiles = list(set(inputFiles2) - set(outputFiles2))
         for F in todoFiles :
             self.log('Converting ' + F + " to .JPG ... ")
             # REMEMBER TO ADD ON THE FILE EXTENSIONS, THE LIST IS MISSING THEM!
-            self.AutoTools.command('convert -quiet ".\\Final\\tif\\' + F + '.tif" ".\\final\\jpg\\' + F + '.jpg"')
+            args = 'convert -quiet "./Final/tif/' + F + '.tif" "./final/jpg/' + F + '.jpg"'
+            self.AutoTools.command(args)
         self.log("All Converts Complete...")
 
 # This just calls all the functions in order, I will eventually make a menu for this but for now, here you are.
@@ -264,8 +266,8 @@ PA = PanoAutomator()
 PA.autoingest()
 PA.autoRotateToNadir()
 # You can change what the logo file name is here, I don't remember if I ever fixed the bug where you can't have spaces or not...
-#PA.addLogo('Advanced_Nadir_small.tif')
-#PA.autoRotateFromNadir()
-#PA.convert()
+PA.addLogo('Advanced_Nadir_small.tif')
+PA.autoRotateFromNadir()
+PA.convert()
 # This is for if you just click on the program and it actually runs. (So it dosent just close out.) The wrapper is B/C I was debugging it and am still doing so.
 input("Press enter to close")
