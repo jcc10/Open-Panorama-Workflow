@@ -160,9 +160,7 @@ class PanoAutomator :
         inputFiles = self.AutoTools.folderlist('Ingest')
         outputFiles = self.AutoTools.folderlist('Ingested')
         outputFiles = self.AutoTools.namestrip(outputFiles, 1)
-        self.log(outputFiles,1)
         todoFiles = list(set(inputFiles) - set(outputFiles))
-        self.log(todoFiles, 1)
         processes = set()
         max_processes = 4
         for F in todoFiles :
@@ -180,7 +178,7 @@ class PanoAutomator :
                 self.log('Prossesing Left...')
                 # Offset of half the image
                 crop = origHeight + 'x' + origHeight + '+' + origHeight + '+0'
-                args = 'convert "' + './Ingest/' + F + '"' + F + '" -crop ' + crop + ' "' + './Ingested/' + FoutL + '"'
+                args = 'convert "' + './Ingest/' + F + '" -crop ' + crop + ' "' + './Ingested/' + FoutL + '"'
                 self.AutoTools.command(args)
             else:
                 self.log("Image '" + F + "' is not 2:1 aspect ratio, Skipping.")
