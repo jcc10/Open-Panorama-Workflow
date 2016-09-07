@@ -20,17 +20,21 @@ class AutomatorTools :
     def __init__(self, debugMode, max_processes):
         self.debug = debugMode
         self.__MaxProcesses = max_processes
+        print('Running with ' + str(max_processes) + " processes")
         self.__processes = set()
         self.__RDG = Random()
         self.__TempFiles = set()
 
-    # Runs a command, if this breaks, I don't want to go looking for all of the calls.
+    # Runs a command if there is less than the Max currently running.
+    # (See processWait)
     def command(self, cmd):
         self.processesWait(self.__MaxProcesses)
         if self.debug == True:
             self.log(cmd, 1)
         self.__processes.add(subprocess.Popen(cmd, shell=True))
 
+    # Waits until the ammount of currently running commands is less than the count given
+    # Give 0 for none.
     def processesWait(self, count='Max_Processes'):
         if count == "Max_Processes":
             count = self.__MaxProcesses
@@ -40,29 +44,15 @@ class AutomatorTools :
             self.__processes.difference_update([
                 p for p in self.__processes if p.poll() is not None])
 
-
-    def sanitize_dir(self, string):
-        return(
-            string.translate(
-                str.maketrans(
-                    {"-":  r"\-",
-                    " ": r"\ ",
-                    "]":  r"\]",
-                    "\\": r"\\",
-                    "^":  r"\^",
-                    "$":  r"\$",
-                    "*":  r"\*"}
-                )
-            )
-        )
-
     # Dysplays text to the user. Later if I ever add a gui this will become the text log function.
     def log(self, text, dbg=0):
         if dbg == 1:
             if self.debug == True:
                 print("DEBUG: ", end='')
         print(text)
-    # Name stripping finction V2,
+
+    # Name stripping finction V2
+    # TODO: See about just writing a extension stripping function.
     def namestrip(self, data, mode=0):
         if mode == 0:
             return(data[:8] + data[-4:])
@@ -102,33 +92,37 @@ class AutomatorTools :
                     o.append(s)
             return o
 
+    # Lists all the files in a folder. Thats it.
+    # (The folder is reletive to the program.)
     def folderlist(self, foldername):
         dirname = './' + foldername
         return([f for f in os.listdir(dirname)])
 
-    # File Saver
-    # This is used so we can arbatrarally save files reletave to the program.
-    # Eventually this will be replaced with a temporarry file interface where it returns the full path of the tempfile.
+    # Temp File Saver
+    # This will save a file in the temp directory under a garunteed unique filename and return the filename (Without the directory)
     def tempFile(self, data, extension='temp'):
-        filename = str(self.__RDG.randint(0,99999999999)) + extension
+        filename = str(self.__RDG.randint(0,99999999999)) + "." + extension
         while (filename in self.__TempFiles):
-            filename = str(self.__RDG.randint(0,99999999999)) + extension
+            filename = str(self.__RDG.randint(0,99999999999)) + "." + extension
         self.__TempFiles.add(filename)
         wr = open('./temp/' + filename, 'w+')
         wr.write(data)
         return(filename)
 
+    # Temp File Purger
+    # This runs through the list of temp files and will delete all of them.
+    # Then it resets the temp file list.
     def prugeTemps(self):
         for file in self.__TempFiles :
             os.remove('./temp/' + file)
+        self.__TempFiles = set()
 
 class PanoAutomator :
-    debug = False
 
     # For now all debug is disabled.
     def __init__(self):
-        self.debug = True
-        self.AutoTools = AutomatorTools(self.debug, 0)
+        self.debug = False
+        self.AutoTools = AutomatorTools(self.debug, 5)
         self.cwd = os.getcwd()
 
     # Separate function so I can chage the logging seprate to the main tool (IE: add a prefix to all messages.)
