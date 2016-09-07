@@ -1,0 +1,1 @@
+This folder is where all the temporary files will get generated. Don't delete it or the script will currently crash.
