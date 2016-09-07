@@ -160,23 +160,28 @@ class PanoAutomator :
         inputFiles = self.AutoTools.folderlist('Ingest')
         outputFiles = self.AutoTools.folderlist('Ingested')
         outputFiles = self.AutoTools.namestrip(outputFiles, 1)
-        self.log(outputFiles,1)
         todoFiles = list(set(inputFiles) - set(outputFiles))
-        self.log(todoFiles, 1)
         processes = set()
         max_processes = 4
         for F in todoFiles :
-            self.log('Splitting ' + F + ":\nProssesing Right...")
-            FoutR = F[:8] + "R" + F[-4:]
-            FoutL = F[:8] + "L" + F[-4:]
-            # Offset of half the image
-            # TODO: Make a option for this read the image dimennsions from the metadata using PIL
-            args = 'convert "' + './Ingest/' + F + '"' + " -crop 3888x3888+0+0 " +'"' + './Ingested/' + FoutR + '"'
-            self.AutoTools.command(args)
-            self.log('Prossesing Left...')
-            # Image full size is 7776 wide and 3888 tall. (easy right?)
-            args = 'convert "' + './Ingest/' + F + '"' + " -crop 3888x3888+3888+0 " +'"' + './Ingested/' + FoutL + '"'
-            self.AutoTools.command(args)
+            # Now reads image metadata to get the dimensions.
+            origWidth, origHeight = Image.open("./Ingest/" + F).size
+            if (origWidth == (origHeight * 2)):
+                origHeight = str(origHeight)
+                origWidth = str(origWidth)
+                self.log('Splitting ' + F + ":\nProssesing Right...")
+                FoutR = F[:8] + "R" + F[-4:]
+                FoutL = F[:8] + "L" + F[-4:]
+                crop = origHeight + 'x' + origHeight + '+0+0'
+                args = 'convert "' + './Ingest/' + F + '" -crop ' + crop + ' "' + './Ingested/' + FoutR + '"'
+                self.AutoTools.command(args)
+                self.log('Prossesing Left...')
+                # Offset of half the image
+                crop = origHeight + 'x' + origHeight + '+' + origHeight + '+0'
+                args = 'convert "' + './Ingest/' + F + '" -crop ' + crop + ' "' + './Ingested/' + FoutL + '"'
+                self.AutoTools.command(args)
+            else:
+                self.log("Image '" + F + "' is not 2:1 aspect ratio, Skipping.")
         self.AutoTools.processesWait(0)
         self.log('All files split.')
 
