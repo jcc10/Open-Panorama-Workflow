@@ -171,11 +171,11 @@ class PanoAutomator :
             FoutL = F[:8] + "L" + F[-4:]
             # Offset of half the image
             # TODO: Make a option for this read the image dimennsions from the metadata using PIL
-            args = 'convert "' + self.AutoTools.sanitize_dir('./Ingest/' + F) + '"' + " -crop 3888x3888+0+0 " +'"' + self.AutoTools.sanitize_dir('./Ingested/' + FoutR) + '"'
+            args = 'convert "' + './Ingest/' + F + '"' + " -crop 3888x3888+0+0 " +'"' + './Ingested/' + FoutR + '"'
             self.AutoTools.command(args)
             self.log('Prossesing Left...')
             # Image full size is 7776 wide and 3888 tall. (easy right?)
-            args = 'convert "' + self.AutoTools.sanitize_dir('./Ingest/' + F) + '"' + " -crop 3888x3888+3888+0 " +'"' + self.AutoTools.sanitize_dir('./Ingested/' + FoutL) + '"'
+            args = 'convert "' + './Ingest/' + F + '"' + " -crop 3888x3888+3888+0 " +'"' + './Ingested/' + FoutL + '"'
             self.AutoTools.command(args)
         self.AutoTools.processesWait(0)
         self.log('All files split.')
