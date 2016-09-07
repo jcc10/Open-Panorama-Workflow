@@ -10,20 +10,51 @@ import os
 from PIL import Image
 import subprocess
 import time
+from random import Random
 
 
 class AutomatorTools :
     # This is where all the common tools for PanoAutomator will go, this is so it's a sub-class.
     # This will be moved into a seprate file and subfolder later.
 
-    def __init__(self, debugMode):
+    def __init__(self, debugMode, max_processes):
         self.debug = debugMode
+        self.__MaxProcesses = max_processes
+        self.__processes = set()
+        self.__RDG = Random()
+        self.__TempFiles = set()
 
     # Runs a command, if this breaks, I don't want to go looking for all of the calls.
     def command(self, cmd):
+        self.processesWait(self.__MaxProcesses)
         if self.debug == True:
             self.log(cmd, 1)
-        os.system(cmd)
+        self.__processes.add(subprocess.Popen(cmd, shell=True))
+
+    def processesWait(self, count='Max_Processes'):
+        if count == "Max_Processes":
+            count = self.__MaxProcesses
+        count -= count
+        while len(self.__processes) > count:
+            time.sleep(.1)
+            self.__processes.difference_update([
+                p for p in self.__processes if p.poll() is not None])
+
+
+    def sanitize_dir(self, string):
+        return(
+            string.translate(
+                str.maketrans(
+                    {"-":  r"\-",
+                    " ": r"\ ",
+                    "]":  r"\]",
+                    "\\": r"\\",
+                    "^":  r"\^",
+                    "$":  r"\$",
+                    "*":  r"\*"}
+                )
+            )
+        )
 
     # Dysplays text to the user. Later if I ever add a gui this will become the text log function.
     def log(self, text, dbg=0):
@@ -34,7 +65,7 @@ class AutomatorTools :
     # Name stripping finction V2,
     def namestrip(self, data, mode=0):
         if mode == 0:
-            return(data[:8] + '.JPG')
+            return(data[:8] + data[-4:])
         elif mode == 1 :
             # used to remove the R or L in the ingested folder list. Also ensures you don't have duplicate entries in the output.
             out = []
@@ -78,9 +109,18 @@ class AutomatorTools :
     # File Saver
     # This is used so we can arbatrarally save files reletave to the program.
     # Eventually this will be replaced with a temporarry file interface where it returns the full path of the tempfile.
-    def tempFile(self, data, filename):
-        wr = open('.\\' + filename, 'w')
+    def tempFile(self, data, extension='temp'):
+        filename = str(self.__RDG.randint(0,99999999999)) + extension
+        while (filename in self.__TempFiles):
+            filename = str(self.__RDG.randint(0,99999999999)) + extension
+        self.__TempFiles.add(filename)
+        wr = open('./temp/' + filename, 'w+')
         wr.write(data)
+        return(filename)
+
+    def prugeTemps(self):
+        for file in self.__TempFiles :
+            os.remove('./temp/' + file)
 
 class PanoAutomator :
     debug = False
@@ -88,7 +128,8 @@ class PanoAutomator :
     # For now all debug is disabled.
     def __init__(self):
         self.debug = True
-        self.AutoTools = AutomatorTools(self.debug)
+        self.AutoTools = AutomatorTools(self.debug, 0)
+        self.cwd = os.getcwd()
 
     # Separate function so I can chage the logging seprate to the main tool (IE: add a prefix to all messages.)
     def log(self, text, dbg=0):
@@ -108,10 +149,10 @@ class PanoAutomator :
     def generate_script(self, mode, filename, Height, Width):
         if mode == 0 :
             # Rotates image so nadir is in the center (Reverses 1)
-            script = 'p f2 w' + Width + ' h' + Height + ' v360 E0 R0 n"TIFF_m c:NONE r:CROP"\nm g1 i0 f0 m2 p0.00784314\n\ni w' + Width + ' h' + Height + ' f4 v360 r0 p90 y0 n".\\Stitched\\' + filename +'"'
+            script = 'p f2 w' + Width + ' h' + Height + ' v360 E0 R0 n"TIFF_m c:NONE r:CROP"\nm g1 i0 f0 m2 p0.00784314\n\ni w' + Width + ' h' + Height + ' f4 v360 r0 p90 y0 n"./../Stitched/' + filename +'"'
         elif mode == 1 :
             # Rotates image so top is in the center (Reverses 0)
-            script = 'p f2 w' + Width + ' h' + Height + ' v360 E0 R0 n"TIFF_m c:NONE r:CROP"\nm g1 i0 f0 m2 p0.00784314\n\ni w' + Width + ' h' + Height + ' f4 v360 r0 p-90 y0 n".\\Logo\\' + filename +'"'
+            script = 'p f2 w' + Width + ' h' + Height + ' v360 E0 R0 n"TIFF_m c:NONE r:CROP"\nm g1 i0 f0 m2 p0.00784314\n\ni w' + Width + ' h' + Height + ' f4 v360 r0 p-90 y0 n"./../Logo/' + filename +'"'
         #elif mode == 2 :
             # Rotates image so nadir is on the left and top is on the right (Reverses 3)
             #script = 'p f2 w' + Width + ' h' + Height + ' v360 E0 R0 n"TIFF_m c:NONE r:CROP"\nm g1 i0 f0 m2 p0.00784314\n\ni w' + Width + ' h' + Height + ' f4 v360 r0 p-90 y0 n".\\Logo\\' + filename +'"'
@@ -125,44 +166,25 @@ class PanoAutomator :
         inputFiles = self.AutoTools.folderlist('Ingest')
         outputFiles = self.AutoTools.folderlist('Ingested')
         outputFiles = self.AutoTools.namestrip(outputFiles, 1)
+        self.log(outputFiles,1)
         todoFiles = list(set(inputFiles) - set(outputFiles))
+        self.log(todoFiles, 1)
         processes = set()
         max_processes = 4
         for F in todoFiles :
-            self.log('Splitting ' + F + "\nProssesing Right...")
-            FoutR = F[:8] + "R" + '.JPG'
-            FoutL = F[:8] + "L" + '.JPG'
+            self.log('Splitting ' + F + ":\nProssesing Right...")
+            FoutR = F[:8] + "R" + F[-4:]
+            FoutL = F[:8] + "L" + F[-4:]
             # Offset of half the image
             # TODO: Make a option for this read the image dimennsions from the metadata using PIL
-            cwd = os.getcwd()
-            escaped = cwd.translate(
-                str.maketrans(
-                    {"-":  r"\-",
-                    " ": r"\ ",
-                    "]":  r"\]",
-                    "\\": r"\\",
-                    "^":  r"\^",
-                    "$":  r"\$",
-                    "*":  r"\*",
-                    ".":  r"\."}
-                )
-            )
-            args = 'convert "' + cwd + '/Ingest/' + F + '"' + " -crop 3888x3888+0+0 " +'"' + cwd + '/Ingested/' + FoutR + '"'
-            processes.add(subprocess.Popen(args, shell=True))
-            while len(processes) >= max_processes:
-                time.sleep(.1)
-                processes.difference_update([
-                    p for p in processes if p.poll() is not None])
-            self.log('Right done...\nProssesing Left')
+            args = 'convert "' + self.AutoTools.sanitize_dir('./Ingest/' + F) + '"' + " -crop 3888x3888+0+0 " +'"' + self.AutoTools.sanitize_dir('./Ingested/' + FoutR) + '"'
+            self.AutoTools.command(args)
+            self.log('Prossesing Left...')
             # Image full size is 7776 wide and 3888 tall. (easy right?)
-            args = 'convert "' + cwd + '/Ingest/' + F + '"' + " -crop 3888x3888+3888+0 " +'"' + cwd + '/Ingested/' + FoutL + '"'
-            processes.add(subprocess.Popen(args, shell=True))
-            self.log('Left done...')
-            while len(processes) >= max_processes:
-                time.sleep(.1)
-                processes.difference_update([
-                    p for p in processes if p.poll() is not None])
-        self.log('All files done')
+            args = 'convert "' + self.AutoTools.sanitize_dir('./Ingest/' + F) + '"' + " -crop 3888x3888+3888+0 " +'"' + self.AutoTools.sanitize_dir('./Ingested/' + FoutL) + '"'
+            self.AutoTools.command(args)
+        self.AutoTools.processesWait(0)
+        self.log('All files split.')
 
     # This rotates the panorama you made so you can edit the Nadir
     def autoRotateToNadir(self):
@@ -170,17 +192,22 @@ class PanoAutomator :
         inputFiles2 = self.AutoTools.namestrip(inputFiles, 4)
         outputFiles = self.AutoTools.folderlist('Nadir')
         todoFiles = list(set(inputFiles2) - set(outputFiles))
+        start = time.time()
         for F in todoFiles :
             self.log('Processing image ' + F + ' information...')
-            origWidth, origHeight = Image.open(os.getcwd() + "\\Stitched\\" + F).size
+            origWidth, origHeight = Image.open("./Stitched/" + F).size
             origHeight = str(origHeight)
             origWidth = str(origWidth)
             scriptText = self.generate_script(0,F,origHeight,origWidth)
             # We now write the script in the function so we *should* never have them end up in diffrent places.
-            self.AutoTools.tempFile(scriptText, 'TempScript.pto')
+            filename = self.AutoTools.tempFile(scriptText, 'pto')
             self.log("Image info obtained. Rotating...")
-            self.AutoTools.command('nona -o ".\\Nadir\\' + F + '" .\\TempScript.pto')
-            self.log('Image ' + F + ' Rotated.')
+            args ='nona -o "' + './Nadir/' + F + '" "' + './temp/' + filename + '"'
+            self.AutoTools.command(args)
+        self.AutoTools.processesWait(0)
+        self.AutoTools.prugeTemps()
+        end = time.time()
+        print("!! IMPORTANT !! : " + str(end - start))
         self.remove0000('Nadir')
 
     # This removes the 0000.tif that is automaitcally added to the files when rotated
@@ -191,7 +218,7 @@ class PanoAutomator :
         for F in files:
             if F[-8:] == '0000.tif':
                 newname = F.replace('0000.tif', '')
-                os.rename('.\\' + Folder + '\\' + F,'.\\' + Folder + '\\' + newname)
+                os.rename('./' + Folder + '/' + F,'./' + Folder + '/' + newname)
         print('Files renamed.')
 
     # This adds the logo to the bottom of the image.
@@ -243,8 +270,8 @@ PA = PanoAutomator()
 PA.autoingest()
 PA.autoRotateToNadir()
 # You can change what the logo file name is here, I don't remember if I ever fixed the bug where you can't have spaces or not...
-PA.addLogo('Advanced_Nadir_small.tif')
-PA.autoRotateFromNadir()
-PA.convert()
+#PA.addLogo('Advanced_Nadir_small.tif')
+#PA.autoRotateFromNadir()
+#PA.convert()
 # This is for if you just click on the program and it actually runs. (So it dosent just close out.) The wrapper is B/C I was debugging it and am still doing so.
 input("Press enter to close")
