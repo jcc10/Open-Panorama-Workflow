@@ -1,3 +1,3 @@
 @echo off
-python Automator.py
+python ./Automator.py
 pause
