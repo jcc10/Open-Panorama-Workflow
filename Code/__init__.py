@@ -120,27 +120,6 @@ class PanoAutomator :
         self.AutoTools.prugeTemps()
         self.remove0000(FolderOut)
 
-    # This rotates the panorama you made so you can edit the Nadir
-##    def autoRotateToNadir(self):
-##        inputFiles = self.AutoTools.folderlist('Stitched')
-##        inputFiles2 = self.AutoTools.namestrip(inputFiles, 4)
-##        outputFiles = self.AutoTools.folderlist('Nadir')
-##        todoFiles = list(set(inputFiles2) - set(outputFiles))
-##        for F in todoFiles :
-##            self.log('Processing image ' + F + ' information...')
-##            origWidth, origHeight = Image.open("./Stitched/" + F).size
-##            origHeight = str(origHeight)
-##            origWidth = str(origWidth)
-##            scriptText = self.generate_script(0,F,origHeight,origWidth)
-##            # We now write the script in the function so we *should* never have them end up in diffrent places.
-##            filename = self.AutoTools.tempFile(scriptText, 'pto')
-##            self.log("Image info obtained. Rotating...")
-##            args ='nona -o "' + './Nadir/' + F + '" "' + './temp/' + filename + '"'
-##            self.AutoTools.command(args)
-##        self.AutoTools.processesWait(0)
-##        self.AutoTools.prugeTemps()
-##        self.remove0000('Nadir')
-
     # This removes the 0000.tif that is automaitcally added to the files when rotated
     # Might want to move into namestrip (Since it is kinda striping the end of the name.)
     def remove0000(self, Folder):
@@ -165,37 +144,17 @@ class PanoAutomator :
             self.AutoTools.command(args)
         self.log("Remember to check if the logo was positioned correctly, you may have to re-do one or two images...")
 
-    # This rotates the image after the logo is added.
-##    def autoRotateFromNadir(self):
-##        inputFiles = self.AutoTools.folderlist('Logo')
-##        outputFiles = self.AutoTools.folderlist('Final/tif')
-##        todoFiles = list(set(inputFiles) - set(outputFiles))
-##        for F in todoFiles :
-##            self.log('Processing image ' + F + ' information...')
-##            origWidth, origHeight = Image.open(os.getcwd() + "/Logo/" + F).size
-##            origHeight = str(origHeight)
-##            origWidth = str(origWidth)
-##            scriptText = self.generate_script(1,F,origHeight,origWidth)
-##            filename = self.AutoTools.tempFile(scriptText, 'pto')
-##            self.log("Image info obtained. Rotating...")
-##            args = 'nona -o "./Final/tif/' + F + '" "./temp/' + filename + '"'
-##            self.AutoTools.command(args)
-##            self.log('Image ' + F + ' Rotated.')
-##        self.AutoTools.processesWait(0)
-##        self.AutoTools.prugeTemps()
-##        self.remove0000('Final/tif')
-
     # This converts the final tif file into a final jpg file.
     # This is b/c I don't feel like re-writing the rotation function to *also* change the file format.
-    def convert(self):
-        inputFiles = self.AutoTools.folderlist('Final/tif')
-        outputFiles = self.AutoTools.folderlist('Final/jpg')
+    def convert(self, FolderIN, ExtensionIN, FolderOUT, ExtensionOUT):
+        inputFiles = self.AutoTools.folderlist(FolderIN)
+        outputFiles = self.AutoTools.folderlist(FolderOUT)
         inputFiles2 = self.AutoTools.namestrip(inputFiles, 2)
         outputFiles2 = self.AutoTools.namestrip(outputFiles, 3)
         todoFiles = list(set(inputFiles2) - set(outputFiles2))
         for F in todoFiles :
-            self.log('Converting ' + F + " to .JPG ... ")
+            self.log('Converting ' + F + " to ." + ExtensionOUT + " ... ")
             # REMEMBER TO ADD ON THE FILE EXTENSIONS, THE LIST IS MISSING THEM!
-            args = 'convert -quiet "./Final/tif/' + F + '.tif" "./final/jpg/' + F + '.jpg"'
+            args = 'convert -quiet "./' + FolderIN + '/' + F + '.' + ExtensionIN + '" "./' + FolderOUT + '/' + F + '.' + ExtensionOUT + '"'
             self.AutoTools.command(args)
         self.log("All Converts Complete...")
