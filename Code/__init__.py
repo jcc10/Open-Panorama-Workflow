@@ -133,14 +133,14 @@ class PanoAutomator :
 
     # This adds the logo to the bottom of the image.
     # It only works well if the logo will cover the *pod / Nadir and the *pod / Nadir is actually at the very bottom.
-    def addLogo(self, LogoFile):
+    def addLogo(self, FolderIN, FolderOUT, LogoFile):
         self.log('Adding logos...')
-        inputFiles = self.AutoTools.folderlist('Nadir')
-        outputFiles = self.AutoTools.folderlist('Logo')
+        inputFiles = self.AutoTools.folderlist(FolderIN)
+        outputFiles = self.AutoTools.folderlist(FolderOUT)
         todoFiles = list(set(inputFiles) - set(outputFiles))
         for F in todoFiles :
             self.log('Adding logo to center of ' + F + " ... ")
-            args ='convert -quiet "./Nadir/' + F + '" "./Logos/' + LogoFile + '" -gravity center -composite -matte "./Logo/' + F + '"'
+            args ='convert -quiet "./' + FolderIN + '/' + F + '" "./Logos/' + LogoFile + '" -gravity center -composite -matte "./' + FolderOUT + '/' + F + '"'
             self.AutoTools.command(args)
         self.log("Remember to check if the logo was positioned correctly, you may have to re-do one or two images...")
 
