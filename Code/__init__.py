@@ -26,14 +26,14 @@ class PanoAutomator :
     def log(self, text, dbg=0):
         self.AutoTools.log(text, dbg)
 
-    # This generates the rotation script used by nona and saves it to TepScript.pto so the program can use it. Breakdown below...
+    # This generates the rotation script used by nona and returns the text. Breakdown below...
     #
     # p f2 w#Width h#Height v360 E0 R0 n"TIFF_m c:NONE r:CROP"
     # This is the output format. #Width and #Height are obtained from the source image (We are just rotating the pre-exsisting image, so this works)
     # m g1 i0 f0 m2 p0.00784314
     # I honestly don't know what this does but I'm too afraid to remove it, so it stays.
     #
-    # i w#Width h#Height f4 v360 r#Rotation p#Pitch y#Yaw n".\Logo\360_0162 Auto-CP.1-2.tif"
+    # i w#Width h#Height f4 v360 r#Roll p#Pitch y#Yaw n"#SourceImage"
     # This is the source image values #Width and # Height should be obvious
     # #Rotation, #Pitch, and #Yaw are how the image will be rotated in the final product.
     # (To get both top and bottom of the image visable use 90, 0, 90 repectivly)
@@ -52,14 +52,31 @@ class PanoAutomator :
             #script = 'p f2 w' + Width + ' h' + Height + ' v360 E0 R0 n"TIFF_m c:NONE r:CROP"\nm g1 i0 f0 m2 p0.00784314\n\ni w' + Width + ' h' + Height + ' f4 v360 r0 p-90 y0 n".\\Logo\\' + filename +'"'
         return script
 
+    # Advanced version of the generate script option, this one has dynamic roll values.
+    # This is to replace the old generate Script version. This one is more dynamic.
+    # TODO: Add more output format optons, Add more input options.
+    #
+    # p f2 w#Width h#Height v360 E0 R0 n"TIFF_m c:NONE r:CROP"
+    # This is the output format. #Width and #Height are obtained from the source image (We are just rotating the pre-exsisting image, so this works)
+    # m g1 i0 f0 m2 p0.00784314
+    # I honestly don't know what this does but I'm too afraid to remove it, so it stays.
+    #
+    # i w#Width h#Height f4 v360 r#Roll p#Pitch y#Yaw n"#SourceImage"
+    # This is the source image values #Width and # Height should be obvious
+    # #Rotation, #Pitch, and #Yaw are how the image will be rotated in the final product.
+    def __generateScript__(self, filenameInput, Height, Width, Roll, Pitch, Yaw) :
+        script = 'p f2 w' + str(Width) + ' h' + str(Height) + ' v360 E0 R0 n"TIFF_m c:NONE r:CROP"\n'
+        script = script + 'm g1 i0 f0 m2 p0.00784314\n\n'
+        script = script + 'i w' + str(Width) + ' h' + str(Height) + ' f4 v360 r' + str(Roll) + ' p' + str(Pitch) + ' y' + str(Yaw) + ' n"./../' + filenameInput +'"'
+        return script
+
     # Used to split a image in half using ImageMagick, To be upgraded in the near future.
-    def autoingest(self):
-        inputFiles = self.AutoTools.folderlist('Ingest')
-        outputFiles = self.AutoTools.folderlist('Ingested')
+    def splitLeftRight(self, FolderIN, FolderOUT):
+        inputFiles = self.AutoTools.folderlist(FolderIN)
+        outputFiles = self.AutoTools.folderlist(FolderOUT)
         outputFiles = self.AutoTools.namestrip(outputFiles, 1)
         todoFiles = list(set(inputFiles) - set(outputFiles))
         processes = set()
-        max_processes = 4
         for F in todoFiles :
             # Now reads image metadata to get the dimensions.
             origWidth, origHeight = Image.open("./Ingest/" + F).size
@@ -70,38 +87,59 @@ class PanoAutomator :
                 FoutR = F[:8] + "R" + F[-4:]
                 FoutL = F[:8] + "L" + F[-4:]
                 crop = origHeight + 'x' + origHeight + '+0+0'
-                args = 'convert "' + './Ingest/' + F + '" -crop ' + crop + ' "' + './Ingested/' + FoutR + '"'
+                args = 'convert "' + './Ingest/' + F + '" -crop ' + crop + ' "' + './' + FolderIN + '/' + FoutR + '"'
                 self.AutoTools.command(args)
                 self.log('Prossesing Left...')
                 # Offset of half the image
                 crop = origHeight + 'x' + origHeight + '+' + origHeight + '+0'
-                args = 'convert "' + './Ingest/' + F + '" -crop ' + crop + ' "' + './Ingested/' + FoutL + '"'
+                args = 'convert "' + './Ingest/' + F + '" -crop ' + crop + ' "' + './' + FolderOUT + '/' + FoutL + '"'
                 self.AutoTools.command(args)
             else:
                 self.log("Image '" + F + "' is not 2:1 aspect ratio, Skipping.")
         self.AutoTools.processesWait(0)
         self.log('All files split.')
 
-    # This rotates the panorama you made so you can edit the Nadir
-    def autoRotateToNadir(self):
-        inputFiles = self.AutoTools.folderlist('Stitched')
+    def rotateEquirectangular(self, FolderIN, FolderOut, Roll, Pitch, Yaw):
+        inputFiles = self.AutoTools.folderlist(FolderIN)
         inputFiles2 = self.AutoTools.namestrip(inputFiles, 4)
-        outputFiles = self.AutoTools.folderlist('Nadir')
+        outputFiles = self.AutoTools.folderlist(FolderOut)
         todoFiles = list(set(inputFiles2) - set(outputFiles))
         for F in todoFiles :
             self.log('Processing image ' + F + ' information...')
-            origWidth, origHeight = Image.open("./Stitched/" + F).size
+            FQURI = "./" + FolderIN + "/" + F
+            origWidth, origHeight = Image.open(FQURI).size
             origHeight = str(origHeight)
             origWidth = str(origWidth)
-            scriptText = self.generate_script(0,F,origHeight,origWidth)
+            scriptText = self.__generateScript__(FQURI, origHeight, origWidth, Roll, Pitch, Yaw)
             # We now write the script in the function so we *should* never have them end up in diffrent places.
             filename = self.AutoTools.tempFile(scriptText, 'pto')
             self.log("Image info obtained. Rotating...")
-            args ='nona -o "' + './Nadir/' + F + '" "' + './temp/' + filename + '"'
+            args ='nona -o "' + './' + FolderOut + '/' + F + '" "./temp/' + filename + '"'
             self.AutoTools.command(args)
         self.AutoTools.processesWait(0)
         self.AutoTools.prugeTemps()
-        self.remove0000('Nadir')
+        self.remove0000(FolderOut)
+
+    # This rotates the panorama you made so you can edit the Nadir
+##    def autoRotateToNadir(self):
+##        inputFiles = self.AutoTools.folderlist('Stitched')
+##        inputFiles2 = self.AutoTools.namestrip(inputFiles, 4)
+##        outputFiles = self.AutoTools.folderlist('Nadir')
+##        todoFiles = list(set(inputFiles2) - set(outputFiles))
+##        for F in todoFiles :
+##            self.log('Processing image ' + F + ' information...')
+##            origWidth, origHeight = Image.open("./Stitched/" + F).size
+##            origHeight = str(origHeight)
+##            origWidth = str(origWidth)
+##            scriptText = self.generate_script(0,F,origHeight,origWidth)
+##            # We now write the script in the function so we *should* never have them end up in diffrent places.
+##            filename = self.AutoTools.tempFile(scriptText, 'pto')
+##            self.log("Image info obtained. Rotating...")
+##            args ='nona -o "' + './Nadir/' + F + '" "' + './temp/' + filename + '"'
+##            self.AutoTools.command(args)
+##        self.AutoTools.processesWait(0)
+##        self.AutoTools.prugeTemps()
+##        self.remove0000('Nadir')
 
     # This removes the 0000.tif that is automaitcally added to the files when rotated
     # Might want to move into namestrip (Since it is kinda striping the end of the name.)
@@ -128,24 +166,24 @@ class PanoAutomator :
         self.log("Remember to check if the logo was positioned correctly, you may have to re-do one or two images...")
 
     # This rotates the image after the logo is added.
-    def autoRotateFromNadir(self):
-        inputFiles = self.AutoTools.folderlist('Logo')
-        outputFiles = self.AutoTools.folderlist('Final/tif')
-        todoFiles = list(set(inputFiles) - set(outputFiles))
-        for F in todoFiles :
-            self.log('Processing image ' + F + ' information...')
-            origWidth, origHeight = Image.open(os.getcwd() + "/Logo/" + F).size
-            origHeight = str(origHeight)
-            origWidth = str(origWidth)
-            scriptText = self.generate_script(1,F,origHeight,origWidth)
-            filename = self.AutoTools.tempFile(scriptText, 'pto')
-            self.log("Image info obtained. Rotating...")
-            args = 'nona -o "./Final/tif/' + F + '" "./temp/' + filename + '"'
-            self.AutoTools.command(args)
-            self.log('Image ' + F + ' Rotated.')
-        self.AutoTools.processesWait(0)
-        self.AutoTools.prugeTemps()
-        self.remove0000('Final/tif')
+##    def autoRotateFromNadir(self):
+##        inputFiles = self.AutoTools.folderlist('Logo')
+##        outputFiles = self.AutoTools.folderlist('Final/tif')
+##        todoFiles = list(set(inputFiles) - set(outputFiles))
+##        for F in todoFiles :
+##            self.log('Processing image ' + F + ' information...')
+##            origWidth, origHeight = Image.open(os.getcwd() + "/Logo/" + F).size
+##            origHeight = str(origHeight)
+##            origWidth = str(origWidth)
+##            scriptText = self.generate_script(1,F,origHeight,origWidth)
+##            filename = self.AutoTools.tempFile(scriptText, 'pto')
+##            self.log("Image info obtained. Rotating...")
+##            args = 'nona -o "./Final/tif/' + F + '" "./temp/' + filename + '"'
+##            self.AutoTools.command(args)
+##            self.log('Image ' + F + ' Rotated.')
+##        self.AutoTools.processesWait(0)
+##        self.AutoTools.prugeTemps()
+##        self.remove0000('Final/tif')
 
     # This converts the final tif file into a final jpg file.
     # This is b/c I don't feel like re-writing the rotation function to *also* change the file format.

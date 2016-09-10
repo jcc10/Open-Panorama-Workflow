@@ -36,7 +36,6 @@ class AutomatorTools :
     def processesWait(self, count='Max_Processes'):
         if count == "Max_Processes":
             count = self.__MaxProcesses
-        count -= count
         while len(self.__processes) > count:
             time.sleep(.1)
             self.__processes.difference_update([
