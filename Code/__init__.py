@@ -8,11 +8,8 @@
 import os
 # REMEMBER PIL WILL NOT FUNCTION CORRECTLY IF YOU SAVE AS 16 BIT .TIF!
 from PIL import Image
-import subprocess
-import time
-from random import Random
 # Import Custom Tools
-from . import __Toolkit__
+import __Toolkit__
 
 class PanoAutomator :
 

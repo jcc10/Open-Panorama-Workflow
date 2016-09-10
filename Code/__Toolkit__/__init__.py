@@ -5,8 +5,6 @@
 
 # Import all the stuff
 import os
-# REMEMBER PIL WILL NOT FUNCTION CORRECTLY IF YOU SAVE AS 16 BIT .TIF!
-from PIL import Image
 import subprocess
 import time
 from random import Random
@@ -47,6 +45,16 @@ class AutomatorTools :
             if self.debug == True:
                 print("DEBUG: ", end='')
         print(text)
+
+    # This function will take a list and will exclude any extentions not in the allowed list.
+    def extensionFilter(self, data, extensions):
+        out = []
+        for ext in extensions:
+            chars = -abs(len(ext))
+            for name in data:
+                if name[chars:] == ext:
+                    out.append(name)
+        return(out)
 
     # Name stripping finction V2
     # TODO: See about just writing a extension stripping function.
